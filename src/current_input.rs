@@ -22,6 +22,7 @@ pub struct CurrentInput {
     pub mouse_point_prev: Option<(f32, f32)>,
     pub scroll_diff: f32,
     pub text: Vec<TextChar>,
+    pub mouse_inside: bool,
 }
 
 impl CurrentInput {
@@ -31,10 +32,11 @@ impl CurrentInput {
             key_actions: vec![],
             key_held: [false; 255],
             mouse_held: [false; 255],
-            mouse_point: None,
+            mouse_point: Some((0.0, 0.0)),
             mouse_point_prev: None,
             scroll_diff: 0.0,
             text: vec![],
+            mouse_inside: false,
         }
     }
 
@@ -46,7 +48,7 @@ impl CurrentInput {
         self.text.clear();
     }
 
-    pub fn handle_event(&mut self, event: &WindowEvent) {
+    pub fn handle_window_event(&mut self, event: &WindowEvent) {
         match event {
             WindowEvent::KeyboardInput { input, .. } => {
                 if let Some(keycode) = input.virtual_keycode {
@@ -74,9 +76,9 @@ impl CurrentInput {
                     self.text.push(TextChar::Char(c));
                 }
             }
-            WindowEvent::CursorMoved { position, .. } => {
-                self.mouse_point = Some((position.x as f32, position.y as f32));
-            }
+            //WindowEvent::CursorMoved { position, .. } => {
+            //    self.mouse_point = Some((position.x as f32, position.y as f32));
+            //}
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
                 button,
@@ -106,6 +108,17 @@ impl CurrentInput {
                     MouseScrollDelta::PixelDelta(delta) => {
                         self.scroll_diff += (delta.y / PIXELS_PER_LINE) as f32
                     }
+                }
+            }
+            _ => {}
+        }
+    }
+    
+    pub fn handle_device_event(&mut self, event: &winit::event::DeviceEvent) {
+        match event {
+            winit::event::DeviceEvent::MouseMotion { delta } => {
+                if let Some((x, y)) = self.mouse_point {
+                    self.mouse_point = Some((x + delta.0 as f32, y + delta.1 as f32));
                 }
             }
             _ => {}

@@ -1,5 +1,5 @@
 use winit::dpi::PhysicalSize;
-use winit::event::{Event, VirtualKeyCode, WindowEvent};
+use winit::event::{Event, VirtualKeyCode, WindowEvent, DeviceEvent};
 
 use crate::current_input::{CurrentInput, KeyAction, MouseAction, TextChar};
 use std::path::PathBuf;
@@ -61,6 +61,10 @@ impl WinitInputHelper {
                 self.step();
                 false
             }
+            Event::DeviceEvent { event, .. } => {
+                self.process_device_event(event);
+                false
+            }
             Event::WindowEvent { event, .. } => {
                 self.process_window_event(event);
                 false
@@ -114,10 +118,26 @@ impl WinitInputHelper {
                 self.scale_factor_changed = Some(*scale_factor);
                 self.scale_factor = Some(*scale_factor);
             }
+            WindowEvent::CursorEntered { .. } => {
+                if let Some(current) = &mut self.current {
+                    current.mouse_inside = true;
+                }
+            }
+            WindowEvent::CursorLeft { .. } => {
+                if let Some(current) = &mut self.current {
+                    current.mouse_inside = false;
+                }
+            }
             _ => {}
         }
         if let Some(current) = &mut self.current {
-            current.handle_event(event);
+            current.handle_window_event(event);
+        }
+    }
+
+    fn process_device_event(&mut self, event: &DeviceEvent) {
+        if let Some(current) = &mut self.current {
+            current.handle_device_event(event);
         }
     }
 
@@ -335,6 +355,14 @@ impl WinitInputHelper {
     /// Otherwise returns false.
     pub fn close_requested(&self) -> bool {
         self.close_requested
+    }
+    
+    pub fn mouse_inside(&self) -> bool {
+        if let Some(current) = &self.current {
+            current.mouse_inside
+        } else {
+            false
+        }
     }
 
     /// Deprecated
